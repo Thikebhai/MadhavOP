@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+  <title>Madhav App</title>
+  <style>
+    * { margin:0; padding:0; box-sizing:border-box; }
+    html, body { height:100%; font-family:sans-serif; overflow:hidden; }
+    #app { position:relative; width:100%; height:100%; background:#fff; }
+    /* Draggable wallpaper image */
+    #wallpaperImg {
+      position:absolute; top:0; left:0; width:100%; height:100%;
+      object-fit:cover; z-index:0; touch-action:none; user-select:none;
+      transform: translate(0px,0px) scale(1);
+    }
+    .header, .footer { position:absolute; left:0; width:100%; color:#fff; text-align:center; padding:10px; z-index:3; }
+    .header { top:0; background:linear-gradient(to right,#000,#333); font-size:1.2em; font-weight:bold; }
+    .footer { bottom:0; height:70px; background:linear-gradient(to right,#000,#333); }
+    .marquee-bar { position:absolute; left:0; right:0; bottom:70px; height:30px; background:#222; color:#fff; overflow:hidden; white-space:nowrap; z-index:2; }
+    @keyframes marquee { 0% { transform:translateX(0); } 100% { transform:translateX(-50%); } }
+    .marquee-bar .marquee { display:inline-block; padding-left:100%; animation:marquee 20s linear infinite; }
+    .content { position:absolute; top:50px; bottom:100px; left:0; right:0; padding:10px; text-align:center; z-index:1; overflow:hidden; }
+    .btn { display:block; margin:12px auto; padding:10px 15px; background:#000; color:#fff; border:none; border-radius:4px; font-size:1em; cursor:pointer; width:80%; max-width:300px; }
+    .btn:hover { background:#444; }
+    .menu-icon { position:absolute; left:10px; top:10px; cursor:pointer; z-index:4; }
+    .menu-icon div { width:25px; height:3px; background:#fff; margin:4px 0; }
+    .dropdown { position:absolute; top:40px; left:10px; width:240px; background:#444; border:1px solid #ccc; padding:10px; display:none; z-index:5; }
+    .dropdown button { width:100%; margin:5px 0; padding:8px; font-size:0.9em; background:#666; color:#fff; border:none; border-radius:3px; }
+    .dropdown button:hover { background:#888; }
+    /* Language selector block */
+    .lang-selector { margin:12px auto; text-align:center; }
+    .lang-selector button { margin:0 4px; padding:6px 12px; font-size:0.9em; background:#000; color:#fff; border:none; border-radius:3px; cursor:pointer; }
+    .lang-selector button:hover { background:#444; }
+  </style>
+</head>
+<body>
+  <div id="app">
+    <div class="menu-icon" onclick="toggleMenu()"><div></div><div></div></div>
+    <div id="dropdownMenu" class="dropdown"></div>
+  </div>
+  <script>
+    /* Translation object for English, Hindi, and Odia */
+    const translations = {
+      en: {
+        header: "Jai shree Madhav ☘️❤️",
+        btnNamJap: "Naam Jap : Click here",
+        btnPdf: "Trisandhya + Malika pdfs",
+        btnYt: "Kalki Avatar Official Channel",
+        btnTelegram: "Sudharma Maha Maha Sangh Satsang Group",
+        btnChooseFile: "Choose File to set wallpaper",
+        headerNam: "Counter: ",
+        namDisplay: "Click to text Madhav",
+        changeName: "Change The Name",
+        changeSize: "Change Text Size",
+        changeColor: "Change Text Colour",
+        shareCounter: "Share Counter",
+        saveCounter: "Save Jap",
+        resetCounter: "Reset Counter",
+        homePage: "Home Page",
+        changeLanguage: "Change Language",
+        help: "Help"
+      },
+      hi: {
+        header: "जय श्री माधव ☘️❤️",
+        btnNamJap: "नाम जाप: यहाँ क्लिक करें",
+        btnPdf: "त्रिसंध्या + मालीका पीडीएफ",
+        btnYt: "कल्कि अवतार आधिकारिक चैनल",
+        btnTelegram: "सुधार्म महा महा संघ सत्संग",
+        btnChooseFile: "वॉलपेपर सेट करने के लिए फ़ाइल चुनें",
+        headerNam: "काउंटर: ",
+        namDisplay: "माधव टाइप करने के लिए क्लिक करें",
+        changeName: "नाम बदलें",
+        changeSize: "टेक्स्ट का आकार बदलें",
+        changeColor: "टेक्स्ट का रंग बदलें",
+        shareCounter: "काउंटर साझा करें",
+        saveCounter: "जप सहेजें",
+        resetCounter: "काउंटर रीसेट करें",
+        homePage: "होम पेज",
+        changeLanguage: "भाषा बदलें",
+        help: "सहायता"
+      },
+      or: {
+        header: "ଜୟ ଶ୍ରୀ ମାଧବ ☘️❤️",
+        btnNamJap: "ନାମ ଜାପ: ଏଠାରେ କ୍ଲିକ୍ କରନ୍ତୁ",
+        btnPdf: "ତ୍ରିସନ୍ଧ୍ୟା + ମାଳିକା PDF",
+        btnYt: "କାଲ୍କି ଅବତାର ଔଫିସିଆଲ୍ ଚ୍ୟାନେଲ୍",
+        btnTelegram: "ସୁଧର୍ମ ମହା ମହା ସଂଘ ସତ୍ସଙ୍ଗ",
+        btnChooseFile: "ୱାଲପେପର୍ ସେଟ୍ କରିବା ପାଇଁ ଫାଇଲ୍ ଚୁଣନ୍ତୁ",
+        headerNam: "କାଉଣ୍ଟର୍: ",
+        namDisplay: "ମାଧବ ଟାଇପ୍ କରିବା ପାଇଁ କ୍ଲିକ୍ କରନ୍ତୁ",
+        changeName: "ନାମ ବଦଳନ୍ତୁ",
+        changeSize: "ଟେକ୍ସ୍ଟ ଆକାର ବଦଳନ୍ତୁ",
+        changeColor: "ଟେକ୍ସ୍ଟ ରଙ୍ଗ ବଦଳନ୍ତୁ",
+        shareCounter: "କାଉଣ୍ଟର୍ ସେୟାର୍ କରନ୍ତୁ",
+        saveCounter: "ଜପ୍ ସେଭ୍ କରନ୍ତୁ",
+        resetCounter: "କାଉଣ୍ଟର୍ ରିସେଟ୍ କରନ୍ତୁ",
+        homePage: "ହୋମ୍ ପେଜ୍",
+        changeLanguage: "ଭାଷା ବଦଳନ୍ତୁ",
+        help: "ସହାୟତା"
+      }
+    };
+
+    // Use language from localStorage or default to English
+    let lang = localStorage.getItem("lang") || "en";
+    
+    // Global variables
+    let page = "main", bgURL = "", counter = 0,
+        saved = localStorage.getItem("savedJapCounter") || 0,
+        name = "Madhav", txtSize = 24, txtColor = "#000", namText = "",
+        offX = 0, offY = 0, scale = 1, startX = 0, startY = 0;
+    
+    // Render a language selector block with three buttons
+    function renderLanguageSelector(){
+      return `<div class="lang-selector">
+        <button onclick="setLanguage('en')">English</button>
+        <button onclick="setLanguage('hi')">Hindi</button>
+        <button onclick="setLanguage('or')">Odia</button>
+      </div>`;
+    }
+    
+    // Change language and update localStorage
+    function setLanguage(l){
+      lang = l;
+      localStorage.setItem("lang", lang);
+      // Reload Home page in new language
+      showMainPage();
+    }
+    
+    // Wallpaper functions
+    function setBG(url){
+      bgURL = url;
+      let app = document.getElementById("app"),
+          img = document.getElementById("wallpaperImg");
+      if(url){
+        if(img){ img.src = url; }
+        else {
+          img = document.createElement("img");
+          img.id = "wallpaperImg";
+          img.src = url;
+          app.insertBefore(img, app.firstChild);
+          initWallpaperDrag();
+        }
+      } else {
+        if(img) img.remove();
+        app.style.backgroundImage = "";
+      }
+    }
+    function clearMenu(){ 
+      let d = document.getElementById("dropdownMenu"); 
+      d.innerHTML = ""; d.style.display = "none"; 
+    }
+    function toggleMenu(){
+      let d = document.getElementById("dropdownMenu");
+      d.style.display = (d.style.display === "block") ? "none" : "block";
+      if(d.style.display === "block") showMenuOptions();
+    }
+    function showMenuOptions(){
+      let d = document.getElementById("dropdownMenu"), html = "";
+      if(page === "main"){
+        html += `<button onclick="changeBGFile()">${translations[lang].btnChooseFile}</button>`;
+        if(bgURL) html += `<button onclick="resetWallpaperPos()">Reset Wallpaper Position</button>
+                           <button onclick="showHelp()">${translations[lang].help}</button>`;
+      } else {
+        html = `<button onclick="changeName()">${translations[lang].changeName}</button>
+                <button onclick="changeSize()">${translations[lang].changeSize}</button>
+                <button onclick="changeColor()">${translations[lang].changeColor}</button>
+                <button onclick="shareCounter()">${translations[lang].shareCounter}</button>
+                <button onclick="saveCounter()">${translations[lang].saveCounter}</button>
+                <button onclick="resetCounter()">${translations[lang].resetCounter}</button>
+                <button onclick="showHelp()">${translations[lang].help}</button>
+                <button onclick="goHome()">${translations[lang].homePage}</button>`;
+      }
+      d.innerHTML = html;
+    }
+    // Simple change text color using prompt (as before)
+    function changeColor(){ 
+      clearMenu(); 
+      let c = prompt("Text color:", txtColor);
+      if(c && c.trim()){
+        txtColor = c.trim();
+        let content = document.querySelector(".content"),
+            disp = document.getElementById("namDisplay");
+        if(content) content.style.color = txtColor;
+        if(disp) disp.style.color = txtColor;
+      }
+    }
+    function renderHeader(text){ 
+      // Also include a "Change Language" button in the header of Nam Jap page if desired.
+      return `<div class="header">${text}</div>`;
+    }
+    function renderMarquee(){ 
+      let rep = "Madhav ".repeat(20); 
+      return `<div class="marquee-bar"><div class="marquee">${rep+rep}</div></div>`; 
+    }
+    function renderFooter(){ return `<div class="footer"></div>`; }
+    
+    function showMainPage(){
+      page = "main"; clearMenu();
+      let content = `<div class="content">
+        <button class="btn" onclick="openNamPage()">${translations[lang].btnNamJap}</button>
+        <button class="btn" onclick="window.open('https://drive.google.com/drive/folders/1Rq-O7xx--_vUMztC6NJiSV_LNiRMCdo6','_blank')">${translations[lang].btnPdf}</button>
+        <button class="btn" onclick="window.open('https://youtube.com/@kalki_avatara?si=NkusyrpsxidqNmuX','_blank')">${translations[lang].btnYt}</button>
+        <button class="btn" onclick="window.open('https://t.me/SudharmaSangha','_blank')">${translations[lang].btnTelegram}</button>
+        <button class="btn" onclick="changeBGFile()">${translations[lang].btnChooseFile}</button>
+        ${renderLanguageSelector()}
+      </div>`;
+      document.getElementById("app").innerHTML = `<div class="menu-icon" onclick="toggleMenu()"><div></div><div></div></div>
+        <div id="dropdownMenu" class="dropdown"></div>
+        ${renderHeader(translations[lang].header)}
+        ${content}
+        ${renderMarquee()}
+        ${renderFooter()}`;
+      setBG(bgURL);
+    }
+    function openNamPage(){
+      page = "namJap"; counter = parseInt(saved,10) || 0; namText = "";
+      clearMenu();
+      let header = `<div class="header">${translations[lang].headerNam}${counter}</div>`;
+      let content = `<div class="content" onclick="handleNamClick()" style="font-size:${txtSize}px; color:${txtColor}; background:rgba(255,255,255,0.8);">
+          <div id="namDisplay" style="text-align:left; line-height:1.4;">${translations[lang].namDisplay}</div>
+        </div>`;
+      document.getElementById("app").innerHTML = `<div class="menu-icon" onclick="toggleMenu()"><div></div><div></div></div>
+        <div id="dropdownMenu" class="dropdown"></div>
+        ${header}
+        ${content}`;
+      setBG(bgURL);
+    }
+    function handleNamClick(){
+      let cont = document.querySelector(".content");
+      if(cont.scrollHeight > cont.clientHeight){
+        namText = "";
+        document.getElementById("namDisplay").innerText = translations[lang].namDisplay;
+        return;
+      }
+      counter++;
+      document.querySelector(".header").innerHTML = `${translations[lang].headerNam}${counter}`;
+      namText += name + " ";
+      document.getElementById("namDisplay").innerText = namText;
+    }
+    function shareCounter(){
+      navigator.clipboard.writeText(translations[lang].headerNam + counter)
+        .then(() => alert("Counter value copied to clipboard!"))
+        .catch(() => alert("Failed to copy counter value."));
+      clearMenu();
+    }
+    function changeBGFile(){
+      clearMenu();
+      let input = document.createElement("input");
+      input.type = "file"; input.accept = "image/*"; input.style.display = "none";
+      input.onchange = function(e){
+        let f = e.target.files[0];
+        if(f){
+          let r = new FileReader();
+          r.onload = function(ev){ setBG(ev.target.result); };
+          r.readAsDataURL(f);
+        }
+      };
+      document.body.appendChild(input);
+      input.click();
+      input.remove();
+    }
+    function changeName(){ clearMenu(); let n = prompt("New text (default '"+name+"'):"), s = n && n.trim(); if(s) name = s; }
+    function changeSize(){ clearMenu(); let s = prompt("Text size (px):", txtSize); if(s && !isNaN(s)) { txtSize = parseInt(s,10); document.querySelector(".content").style.fontSize = txtSize+"px"; } }
+    function changeColor(){ clearMenu(); 
+      let c = prompt("Text color:", txtColor);
+      if(c && c.trim()){
+        txtColor = c.trim();
+        let content = document.querySelector(".content"),
+            disp = document.getElementById("namDisplay");
+        if(content) content.style.color = txtColor;
+        if(disp) disp.style.color = txtColor;
+      }
+    }
+    function saveCounter(){ clearMenu(); localStorage.setItem("savedJapCounter", counter); alert("Counter saved: " + counter); }
+    function resetCounter(){ clearMenu(); counter = 0; document.querySelector(".header").innerHTML = `${translations[lang].headerNam}${counter}`; }
+    function goHome(){ clearMenu(); showMainPage(); }
+    function resetWallpaperPos(){
+      offX = 0; offY = 0; scale = 1; updateWallpaperTransform(); clearMenu();
+    }
+    /* Draggable wallpaper functionality */
+    function initWallpaperDrag(){
+      const img = document.getElementById("wallpaperImg");
+      if(!img) return;
+      img.addEventListener("pointerdown", e => {
+        e.preventDefault();
+        startX = e.clientX - offX; startY = e.clientY - offY;
+        img.setPointerCapture(e.pointerId);
+      });
+      img.addEventListener("pointermove", e => {
+        if(e.pressure === 0) return;
+        offX = e.clientX - startX; offY = e.clientY - startY;
+        updateWallpaperTransform();
+      });
+      img.addEventListener("pointerup", e => { img.releasePointerCapture(e.pointerId); });
+      window.addEventListener("wheel", e => {
+        if(!document.getElementById("wallpaperImg")) return;
+        e.preventDefault();
+        let factor = e.deltaY < 0 ? 1.05 : 0.95;
+        scale *= factor; updateWallpaperTransform();
+      });
+    }
+    function updateWallpaperTransform(){
+      const img = document.getElementById("wallpaperImg");
+      if(img) img.style.transform = `translate(${offX}px, ${offY}px) scale(${scale})`;
+    }
+    function showHelp(){
+      alert(translations[lang].help);
+      clearMenu();
+    }
+    window.onload = function(){ showMainPage(); };
+    document.addEventListener("click", e => {
+      let d = document.getElementById("dropdownMenu"), m = document.querySelector(".menu-icon");
+      if(d && !d.contains(e.target) && !m.contains(e.target)) d.style.display = "none";
+    });
+  </script>
+</body>
+</html>
